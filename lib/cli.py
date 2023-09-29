@@ -75,7 +75,7 @@ class Game:
     @staticmethod
     def menu():
         print("Please select an option:")
-        print("1 - Exit the program")
+        print("1 - Exit the game")
         print("2 - Start the game")
         print("3 - Get all Names and Attempts")
         print("4 - Update a name")
@@ -86,7 +86,7 @@ class Game:
 class Database:
     @staticmethod
     def save_game_result(player_name, attempts):
-        conn = sqlite3.connect('your_database_name')
+        conn = sqlite3.connect('game_database')
         cursor = conn.cursor()
         sql = """
             INSERT INTO game_results (player_name, attempts)
@@ -98,7 +98,7 @@ class Database:
 
     @staticmethod
     def get_all_player_attempts():
-        conn = sqlite3.connect('your_database_name')
+        conn = sqlite3.connect('game_database')
         cursor = conn.cursor()
         sql = """
             SELECT player_name, attempts
@@ -115,7 +115,7 @@ class Database:
 
     @staticmethod
     def update_player_name(old_name, new_name):
-        conn = sqlite3.connect('your_database_name')
+        conn = sqlite3.connect('game_database')
         cursor = conn.cursor()
         sql = """
             UPDATE game_results
@@ -128,7 +128,7 @@ class Database:
 
     @staticmethod
     def delete_player(player_name):
-        conn = sqlite3.connect('your_database_name')
+        conn = sqlite3.connect('game_database')
         cursor = conn.cursor()
         sql = """
             DELETE FROM game_results
@@ -140,7 +140,7 @@ class Database:
 
     @staticmethod
     def search_player_by_name(player_name):
-        conn = sqlite3.connect('your_database_name')
+        conn = sqlite3.connect('game_database')
         cursor = conn.cursor()
         sql = """
             SELECT player_name, attempts
@@ -154,7 +154,7 @@ class Database:
 
 
 if __name__ == "__main__":
-    conn = sqlite3.connect('your_database_name')
+    conn = sqlite3.connect('game_database')
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS game_results (
