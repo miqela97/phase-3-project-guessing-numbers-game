@@ -1,151 +1,170 @@
-import pygame
-import sys
-import time
 import random
-
-
-speed = 7
-
-
-frame_size_x = 1380
-frame_size_y = 840
-
-check_errors = pygame.init()
-
-if check_errors[1] > 0:
-    print("Error " + check_errors[1])
-else:
-    print("Game Successfully initialized")
-
-
-pygame.display.set_caption("Snake Game")
-game_window = pygame.display.set_mode((frame_size_x, frame_size_y))
-
-
-black = pygame.Color(0, 0, 0)
-white = pygame.Color(255, 255, 255)
-red = pygame.Color(255, 0, 0)
-green = pygame.Color(0, 255, 0)
-blue = pygame.Color(0, 0, 255)
-
-fps_controller = pygame.time.Clock()
-
-square_size = 60
-
-
-high_scores = []
-class Snake:
-    def __init__(self, game):
-        self.game = game
-
-
-def show_score(choice, color, font, size):
-    score_font = pygame.font.SysFont(font, size)
-    score_surface = score_font.render("Score: " + str(score), True, color)
-    score_rect = score_surface.get_rect()
-    if choice == 1:
-        score_rect.midtop = (frame_size_x / 10, 15)
-    else:
-        score_rect.midtop = (frame_size_x / 2, frame_size_y / 1.25)
-    
-    game_window.blit(score_surface, score_rect)
-
-def show_game_over(score):
-    game_over_font = pygame.font.SysFont('consolas', 36)
-    game_over_text = game_over_font.render(f"Game Over - Your Score: {score}", True, white)
-    game_over_rect = game_over_text.get_rect()
-    game_over_rect.center = (frame_size_x // 2, frame_size_y // 2)
-    game_window.blit(game_over_text, game_over_rect)
-    pygame.display.flip()
-
-
-def init_vars():
-    global head_pos, snake_body, food_pos, food_spawn, score, direction, username
-    direction = "RIGHT"
-    head_pos = [120, 60]
-    snake_body = [[120, 60]]
-    food_pos = [random.randrange(1, (frame_size_x // square_size)) * square_size,
-                random.randrange(1, (frame_size_y // square_size)) * square_size]
-    food_spawn = True
-    score = 0
-    username = ""  
-
-init_vars()
+import sqlite3
 
 class Game:
-    def __init__(self, game):
-        self.game = game
+    def __init__(self):
+        self.secret_number = 0
+        self.player_name = ""
 
-username = ""
-name_entered = False
+    def initialize_game(self):
+        self.secret_number = random.randint(1, 100)
+        print("Welcome to the Number Guessing Game!")
+        self.player_name = input("Enter your name: ")
+        print(f"Hello, {self.player_name}!")
 
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        elif event.type == pygame.KEYDOWN:
-            if (event.key == pygame.K_UP or event.key == ord("w")) and direction != "DOWN":
-                direction = "UP"
-            elif (event.key == pygame.K_DOWN or event.key == ord("s")) and direction != "UP":
-                direction = "DOWN"
-            elif (event.key == pygame.K_LEFT or event.key == ord("a")) and direction != "RIGHT":
-                direction = "LEFT"
-            elif (event.key == pygame.K_RIGHT or event.key == ord("d")) and direction != "LEFT":
-                direction = "RIGHT"
-    
-    if not name_entered:
-        
-        username = input("Enter your name: ")
-        name_entered = True  
+    def play_game(self):
+        attempts = 0
+        while True:
+            guess = input("Guess a number between 1 and 100: ")
+            try:
+                guess = int(guess)
+                attempts += 1
 
-    if direction == "UP":
-        head_pos[1] -= square_size
-    elif direction == "DOWN":
-        head_pos[1] += square_size
-    elif direction == "LEFT":
-        head_pos[0] -= square_size
-    else:
-        head_pos[0] += square_size
+                if guess < self.secret_number:
+                    print("Too low! Try again.")
+                elif guess > self.secret_number:
+                    print("Too high! Try again.")
+                else:
+                    print(f"Congratulations, {self.player_name}! You guessed the number {self.secret_number} in {attempts} attempts.")
+                    Database.save_game_result(self.player_name, attempts)
+                    break
+            except ValueError:
+                print("Invalid input. Please enter a valid number.")
 
-    if head_pos[0] < 0:
-        head_pos[0] = frame_size_x - square_size
-    elif head_pos[0] > frame_size_x - square_size:
-        head_pos[0] = 0
-    elif head_pos[1] < 0:
-        head_pos[1] = frame_size_y - square_size
-    elif head_pos[1] > frame_size_y - square_size:
-        head_pos[1] = 0
+    def update_player_name(self):
+        new_name = input("Enter your new name: ")
+        Database.update_player_name(self.player_name, new_name)
+        self.player_name = new_name
+        print(f"Your name has been updated to {new_name}.")
 
-    snake_body.insert(0, list(head_pos))
-    if head_pos[0] == food_pos[0] and head_pos[1] == food_pos[1]:
-        score += 1
-        food_spawn = False
-    else:
-        snake_body.pop()
+    def delete_player(self):
+        search_term = input("Enter the name of the player you want to delete: ")
+        Database.delete_player(search_term)
+        print(f"Player {search_term}'s data has been deleted.")
 
-   
-    if not food_spawn:
-        food_pos = [random.randrange(1, (frame_size_x // square_size)) * square_size,
-                    random.randrange(1, (frame_size_y // square_size)) * square_size]
-        food_spawn = True
+    def search_player_by_name(self):
+        search_term = input("Enter the name of the player you want to search for: ")
+        results = Database.search_player_by_name(search_term)
+        if results:
+            for row in results:
+                print(f"Player: {row[0]}, Attempts: {row[1]}")
+        else:
+            print(f"No player with the name '{search_term}' found.")
+
+    def main_menu(self):
+        while True:
+            self.menu()
+            choice = input("> ")
+            if choice == "1":
+                print(f"Goodbye, {self.player_name}!")
+                exit()
+            elif choice == "2":
+                self.initialize_game()
+                self.play_game()
+            elif choice == "3":
+                Database.get_all_player_attempts()
+            elif choice == "4":
+                self.update_player_name()
+            elif choice == "5":
+                self.delete_player()
+            elif choice == "6":
+                self.search_player_by_name()
+            else:
+                print("Invalid choice")
+
+    @staticmethod
+    def menu():
+        print("Please select an option:")
+        print("1 - Exit the program")
+        print("2 - Start the game")
+        print("3 - Get all Names and Attempts")
+        print("4 - Update a name")
+        print("5 - Delete a name")
+        print("6 - Search name")
 
 
-    for block in snake_body[1:]:
-        if head_pos[0] == block[0] and head_pos[1] == block[1]:
-            show_game_over(score)  
-            pygame.time.delay(2000)  
-            high_scores.append((username, score))
-            init_vars()
-            name_entered = False  
+class Database:
+    @staticmethod
+    def save_game_result(player_name, attempts):
+        conn = sqlite3.connect('your_database_name')
+        cursor = conn.cursor()
+        sql = """
+            INSERT INTO game_results (player_name, attempts)
+            VALUES (?, ?)
+        """
+        cursor.execute(sql, (player_name, attempts))
+        conn.commit()
+        conn.close()
 
-    game_window.fill(black)
-    for pos in snake_body:
-        pygame.draw.rect(game_window, green, pygame.Rect(
-            pos[0] + 2, pos[1] + 2,
-            square_size - 2, square_size - 2))
-        
-    pygame.draw.rect(game_window, red, pygame.Rect(food_pos[0], food_pos[1], square_size, square_size))
-    show_score(1, white, 'consolas', 20)
-    pygame.display.update()
-    fps_controller.tick(speed)
+    @staticmethod
+    def get_all_player_attempts():
+        conn = sqlite3.connect('your_database_name')
+        cursor = conn.cursor()
+        sql = """
+            SELECT player_name, attempts
+            FROM game_results
+        """
+        cursor.execute(sql)
+        results = cursor.fetchall()
+        conn.close()
+        if results:
+            for row in results:
+                print(f"Player: {row[0]}, Attempts: {row[1]}")
+        else:
+            print("No game results found.")
+
+    @staticmethod
+    def update_player_name(old_name, new_name):
+        conn = sqlite3.connect('your_database_name')
+        cursor = conn.cursor()
+        sql = """
+            UPDATE game_results
+            SET player_name = ?
+            WHERE player_name = ?
+        """
+        cursor.execute(sql, (new_name, old_name))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def delete_player(player_name):
+        conn = sqlite3.connect('your_database_name')
+        cursor = conn.cursor()
+        sql = """
+            DELETE FROM game_results
+            WHERE player_name = ?
+        """
+        cursor.execute(sql, (player_name,))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def search_player_by_name(player_name):
+        conn = sqlite3.connect('your_database_name')
+        cursor = conn.cursor()
+        sql = """
+            SELECT player_name, attempts
+            FROM game_results
+            WHERE player_name = ?
+        """
+        cursor.execute(sql, (player_name,))
+        results = cursor.fetchall()
+        conn.close()
+        return results
+
+
+if __name__ == "__main__":
+    conn = sqlite3.connect('your_database_name')
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS game_results (
+            id INTEGER PRIMARY KEY,
+            player_name TEXT,
+            attempts INTEGER
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+    game = Game()
+    game.main_menu()
